@@ -1,0 +1,26 @@
+ BeginModel  
+	      Name=TopDownHier       #modelname
+	      edgeConn=1, k=2        #modelparams
+	      EndModel
+
+	BeginModel
+	       Name=ASWaxman  	       #modelname
+	       N=10000
+	       HS=1000
+	       LS=100
+	       alpha=0.2
+	       beta=0.15
+	       BWDist=Uniform   
+	EndModel	
+
+	BeginModel
+		Name=Router
+		Format=GTITM
+		File=GT-ITMgraph.alt
+	EndModel
+	
+	BeginModel
+		Name=Router
+		Dir=graphs/
+	EndModel
+	

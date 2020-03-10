@@ -1,0 +1,86 @@
+package Export;
+
+import Topology.*;
+import Topology.*;
+import Model.*;
+import Graph.*;
+import java.io.*;
+
+
+
+public class DMLExport {
+
+    private Topology t;
+    private BufferedWriter bw;
+
+    public DMLExport(Topology t, File outFile) {
+	this.t = t;
+	try {
+	    bw = new BufferedWriter(new FileWriter(outFile));
+	}
+	catch (IOException e) {
+	    Util.ERR(" Error creating BufferedWriter in DMLExport: " + e);
+	}
+    }
+
+    
+    private void doDMLHeader() {
+	bw.write("#"+outFile.getName());
+	bw.newLine();
+	bw.write("#BRITE topology output to DML");
+	bw.newLine(); bw.newLine(); 
+	
+	//The following line in the DML file makes certain that our generated DML file is actually a valid DML file.
+	bw.write("_schema [ _find .schemas.Net]");   
+	
+	bw.newLine(); bw.newLine();
+
+	bw.write("Net [ ");
+	bw.newLine();
+	bw.write("\tfrequency 1000000000 \t #1 nanosecond time resolution"); bw.newLine();
+	bw.write("\trandomstream ["); bw.newLine();
+	bw.write("\t generator \"MersenneTwister\"");  bw.newLine();
+	bw.write("\t stream \"startseed\""); bw.newLine();
+	bw.write("\t reproducibility_level \"host\""); bw.newLine();
+	bw.write("\t ]"); bw.newLine(); bw.newLine(); 
+
+    }
+       
+    private void doNodes() {
+	Graph g = t.getGraph();
+	Node[] nodes = g.getNodesArray();
+	
+
+	bw.newLine();
+	bw.write("#  ROUTERS -------------------------------------------------------");
+	bw.newLine();
+	bw.newLine();
+	
+	Arrays.sort(nodes, Node.IDComparator); 
+	for (int i=0; i<nodes.length; ++i) {
+	    bw.write("router [ "); bw.newLine();
+	    bw.write("\t id "+i);
+	    bw.write("\t interface [idrange from 1 to " + g.getNumNeighborsOf(nodes[i]) + " ]");
+	    bw.write("\t _extends dictionary.BriteRouter");
+	    
+	}
+	
+	
+
+	    
+
+	
+    }
+
+    public void export() {
+	doDMLHeader();
+	Graph g = t.getGraph();
+	doNodes();
+	doLinks();
+	
+    }
+    
+    
+    
+    
+}

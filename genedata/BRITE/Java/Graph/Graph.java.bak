@@ -1,0 +1,322 @@
+package Graph;
+
+import Util.Util;
+
+import java.util.HashMap;
+import java.util.ArrayList;
+
+
+public abstract class Graph /*implements graphAlgs*/ {
+    
+    int numNodes;
+    int numEdges;
+    public int shift;  /*this is an ugly hack so that we know
+			  where the nodeIDs for this g begin from*/
+    
+    HashMap Nodes;  /*this is our repository of nodes & edges*/
+    HashMap Edges;
+    
+    HashMap adjList; /*this is graph with nodeID for efficiencyx*/
+    
+    public Graph() {
+	Nodes = new HashMap();
+	Edges = new HashMap();
+	adjList = new HashMap();
+	shift =  Node.getNodeCount()+1;
+    }
+    
+    public Graph(int numNodes) {
+	Nodes = new HashMap(numNodes);
+	Edges = new HashMap(2*numNodes);
+	adjList = new HashMap(numNodes);
+	shift =  Node.getNodeCount()+1;
+    }
+    
+    
+    public Graph(Graph g) {
+	/*return a copy of g*/
+	
+	//return g.clone();
+	Nodes = new HashMap(g.getNumNodes());
+	Edges = new HashMap(2*g.getNumNodes());
+	adjList = new HashMap(g.getNumNodes());
+	shift =  g.shift;
+	
+	Nodes.putAll(g.getNodes());
+	Edges.putAll(g.getEdges());
+	adjList.putAll(g.getAdjList());
+	
+    }
+    
+
+    //Given a vector of graphs, produce a single graph with vectorsize 
+    // disconnected components    
+    public Graph(ArrayList graphs) {
+	
+	//assumption: all graphs in vector are same size, but if not,
+	//thats ok because datastructure automatically  increases
+	int N = graphs.size() * (((Graph)graphs.get(0)).getNumNodes());;
+	Nodes = new HashMap(N);
+	Edges = new HashMap(N);
+	adjList = new HashMap(N);
+	int size = graphs.size();
+	for (int i=0; i<size; ++i) {
+	    Graph g = (Graph) graphs.get(i);
+	    Nodes.putAll(g.getNodes());               //TODO:   Need to do conflict detection here, but let Flatten() take care of that
+	    Edges.putAll(g.getEdges());               //TODO:   Are these new or are these references?
+	    adjList.putAll(g.getAdjList());           // That is, does putAll copy or by ref
+	} 
+    }
+
+    
+    public void addEdge(Edge e)  {
+	/*sub class overrides this*/
+    }
+    
+    public boolean hasEdge(Node src, Node dst) {
+	return hasEdge(src.getID(), dst.getID());
+    }
+    
+    public boolean hasEdge(int srcID, int dstID) {
+       
+	int intID = Edge.computeID(srcID, dstID);
+	if (intID==-1) {
+	    long longID = Edge.computeLongID(srcID, dstID);
+	    if (Edges.containsKey(new Long(longID)))
+		return true;
+	}
+	else {
+	    if (Edges.containsKey(new Integer(intID)))
+		return true;
+	}
+	return false;
+    }
+    
+    public void addNode(Node n) {
+    	Integer nID = new Integer(n.getID());
+	Nodes.put(nID, n);
+	if (!adjList.containsKey(nID)){
+	    adjList.put(nID, new ArrayList());
+	    ++numNodes;
+	}
+    }
+    
+    public void removeNode(Node n) {
+	//Nodes.remove(n.getID());
+	//adjList.remove(
+
+    }
+    
+    public void dumpToOutput() {  /*to debug*/
+    	/*for (Enumeration e=adjList.keys(); e.hasMoreElements();) {
+	    Integer n = (Integer) e.nextElement();
+	    ArrayList v = (ArrayList) adjList.get(n);
+	    if (v.size()==0) 
+		continue;
+	    System.out.print(n+" -> ");
+	    int size = v.size();
+	    for (int i=0; i<size-1; ++i) {
+		Integer ni = (Integer) v.get(i);
+		System.out.print(ni+", ");
+	    }
+	    Integer lastNode = (Integer)v.get(v.size()-1);
+	    System.out.println(lastNode+".");
+	    }*/
+	System.out.println("\nNumber of Nodes = "+numNodes + " | Number of Edges ="+numEdges);
+	//	System.out.println("\nVerification:  NumNodes = " + Node.getNodeCount() + " & NumEdges = " + Edge.getEdgeCount());
+    }
+
+   
+    public ArrayList getIncidentEdges(Node src) {
+	ArrayList v = new ArrayList();
+	
+	//get neighbors of src
+	ArrayList neighbors = getNeighborsOf(src);
+	int size = neighbors.size();
+	for (int i=0; i<size; ++i) {
+	    Node dst = (Node) neighbors.get(i);
+	    
+	    int edgeID = Edge.computeID(src.getID(), dst.getID());
+	    if (edgeID!=-1) {
+		Edge e = (Edge) Edges.get(new Integer(edgeID));
+		v.add(e);
+		if (e==null) { Util.DEBUG("AdjList has null e");  System.exit(0); }
+	    }
+	    else {
+		long longID = Edge.computeLongID(src.getID(), dst.getID());
+		Edge e2 = (Edge) Edges.get(new Long(longID));
+		v.add(e2);
+		if (e2==null) { Util.DEBUG("AdjList has null e");  System.exit(0); }
+	    }
+	}
+	return v;
+    }
+   
+
+    
+    public ArrayList getNodesVector() { return new ArrayList(Nodes.values()); }
+    public ArrayList getEdgesVector() { return new ArrayList(Edges.values()); }
+    public int getNumNodes() { return numNodes; }
+    public int getNumEdges() { return numEdges; }
+    public HashMap getNodes() { return Nodes; }
+    public HashMap getEdges() { return Edges; }
+    public HashMap getAdjList() { return adjList; }
+    
+    //    public Vector getNeighborsOf(Node n) {
+    //	Integer nID = new Integer(n.getID());
+    //	return (Vector)adjList.get(nID);
+    //}
+    
+    //return vector of neighboring *NODES* (not ID)
+    public ArrayList getNeighborsOf(Node n) {
+	Integer nID = new Integer(n.getID());
+	ArrayList neighborID = (ArrayList) adjList.get(nID);
+	int size = neighborID.size();
+	ArrayList neighbors = new ArrayList(size);
+	for (int i=0; i<size; ++i) {
+	    int id = ((Integer)neighborID.get(i)).intValue();
+	    neighbors.add(getNodeFromID(id));
+	}
+	return neighbors;
+
+    }
+
+    public Node getNodeFromID(int id) {
+	return (Node) Nodes.get(new Integer(id));
+    }
+
+    public Node getKthNode(int k) {
+	Node n= (Node) Nodes.get(new Integer(k+shift));
+	return n;
+    }
+    
+    public Node getSmallestDegreeNode() { 
+	ArrayList v = this.getNodesVector();
+	int maxDeg = ((Node)v.get(0)).getOutDegree();
+	int ret = ((Node)v.get(0)).getID(); 
+	int size = v.size();
+	for (int i=1; i<size; ++i) {
+	    Node n = (Node) v.get(i);
+	    int nDeg = n.getOutDegree();
+	    if (nDeg < maxDeg) {
+		maxDeg= nDeg;
+		ret = n.getID();
+	    }
+	}
+	return  getNodeFromID(ret);
+    }
+
+    public ArrayList getLeafNodes() {
+	ArrayList leafNodes = new ArrayList();
+	ArrayList v = this.getNodesVector();
+	Node n = getSmallestDegreeNode();
+	leafNodes.add(n);
+	int nDeg = n.getOutDegree(); 
+	int size = v.size();
+	for (int i=0; i<size; ++i) {
+	    Node u = (Node) v.get(i);
+	    if (u.getOutDegree() == nDeg && u!=n) {
+		leafNodes.add(u);
+	    }
+	}
+	return leafNodes;
+    }
+
+    public Node getSmallestDegreeNodeThreshold(int k) {
+	/*get smallest deg node more than k*/
+	ArrayList v = this.getNodesVector();
+	int maxDeg = ((Node)v.get(0)).getOutDegree();
+	int ret = ((Node)v.get(0)).getID();
+	int size = v.size();
+	for (int i=1; i<size; ++i) {
+	    Node n = (Node) v.get(i);
+	    int nDeg = n.getOutDegree();
+	    if (nDeg < maxDeg && nDeg>k) {
+		maxDeg= nDeg;
+		ret = n.getID();
+	    }
+	}
+	return  getNodeFromID(ret);
+    }
+
+    
+    private void dfsVisit(Node u) {
+	u.setColor(GraphConstants.COLOR_GRAY);
+	ArrayList neighbors = this.getNeighborsOf(u);
+	int size = neighbors.size();
+	for (int i=0; i<size; ++i) {
+	    //	    Node v = (Node) getNodeFromID(((Integer)neighbors.get(i)).intValue());
+	    Node v = (Node) neighbors.get(i);
+	    if (v.getColor() == GraphConstants.COLOR_WHITE)
+		dfsVisit(v);
+	}
+	u.setColor(GraphConstants.COLOR_BLACK);
+	
+    }
+    public void dfs() {
+	/*make sure all nodes are colored white before starting*/
+	ArrayList nodesV = getNodesVector();
+	int size = nodesV.size();
+	for (int i=0; i<size; ++i) {
+	    Node n = (Node) nodesV.get(i);
+	    n.setColor(GraphConstants.COLOR_WHITE);
+	}
+	
+	
+	/*now visit each connecting node*/
+	Node u = (Node) nodesV.get(0);
+	if (u.getColor() == GraphConstants.COLOR_WHITE)
+	    dfsVisit(u);
+	
+	
+    }
+    
+
+    public boolean isConnected() {
+	/*do dfs and mark all nodes reachable*/
+	
+	dfs();	
+	
+	ArrayList nodesV = getNodesVector();
+	boolean isConnected=true;
+	int size = nodesV.size();
+	for (int i=0; i<size; ++i) {
+	    Node n = (Node) nodesV.get(i);
+	    if (n.getColor() != GraphConstants.COLOR_BLACK){
+	       
+		System.out.println("***** Node " + n.getID() //+ " of AS: "+ ((RouterNodeConf)n.getNodeConf()).getCorrAS()
+				   +" is not black");
+		
+		isConnected=false;
+	    }
+	}
+	return isConnected;
+    }
+    
+
+    public void markAllNodes(int color) {
+	ArrayList nodesV = getNodesVector();
+	int size = nodesV.size();
+	for (int i=0; i<size; ++i) {
+	    Node n = (Node) nodesV.get(i);
+	    n.setColor(color);
+	}
+	
+    }
+    
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
