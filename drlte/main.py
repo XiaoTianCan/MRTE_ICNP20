@@ -13,10 +13,10 @@ def get_stamp_type(time_stamp, topo, target, scheme, path_num, synthesis_type, r
     stamp_type = "%s_%s_%s_%s_p%d_%s" % (time_stamp, topo, target, scheme, path_num, synthesis_type)
     if scheme == "MSA" or scheme == "MDA":
         stamp_type += "_rwd%d" % rwd_flag
-        stamp_type += "_small%.1f" % small_ratio
-    if topo == "briten12r16grid":
-        stamp_tail += "_%dblocks" % (block_num)
+        stamp_type += "_small%.2f" % small_ratio
     stamp_type += "_epoch%d" % (epochs)
+    if topo == "briten12r16grid":
+        stamp_type += "_%dblocks" % (block_num)
     if stamp_tail != "":
         stamp_type += '_' + stamp_tail
     return stamp_type
@@ -62,7 +62,8 @@ def run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, b
         infer_stamp_type = get_stamp_type(time_stamp, topo, "train", scheme, path_num, synthesis_type, rwd_flag, small_ratio, epochs, block_num, stamp_tail)
         ckpt_path = "%soutputs/ckpoint/%s/ckpt" % (path_pre, infer_stamp_type)
         train_start_index = 40
-        cmd = "python3 lib/agent.py --path_pre=%s --stamp_type=%s --agent_type=%s --episodes=%d --epochs=50 --topo_name=%s --train_start_index=%d  --synthesis_type=%s --rwd_flag=%d --path_type=%s --small_ratio=%f --block_num=%d --is_train=False --ckpt_path=%s --failure_flag=1" % (path_pre, stamp_type, scheme, failure_episodes, topo, train_start_index, synthesis_type, rwd_flag, path_type, small_ratio, block_num, ckpt_path)
+        epochs = 50
+        cmd = "python3 lib/agent.py --path_pre=%s --stamp_type=%s --agent_type=%s --episodes=%d --epochs=%d --topo_name=%s --train_start_index=%d  --synthesis_type=%s --rwd_flag=%d --path_type=%s --small_ratio=%f --block_num=%d --is_train=False --ckpt_path=%s --failure_flag=1" % (path_pre, stamp_type, scheme, failure_episodes, epochs, topo, train_start_index, synthesis_type, rwd_flag, path_type, small_ratio, block_num, ckpt_path)
         print(cmd)
         os.system(cmd)
 
@@ -77,14 +78,14 @@ def run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, b
 
 ''' para setting area '''
 path_pre = "/home/server/gengnan/NATE_project/"
-time_stamp = "Test"
-target = "failure"
+time_stamp = "0310"
+target = "converge"
 scheme = "MDA" # MDA MSA ECMP
 topo = "1221c" # 1221c google briten12r16grid
 para_p = [3, 3, 1] # intra path num; gate num; gate path num
 path_num = para_p[0]*100 + para_p[1]*10 + para_p[2]
 synthesis_type = "gravNR250" # gravNR250 gravNR50c
-epochs = 50
+epochs = 1500
 rwd_flag = 0
 small_ratio = 0.1 # TODO: change to small ratio in function
 if topo == "briten12r16grid":

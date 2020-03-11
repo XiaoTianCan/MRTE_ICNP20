@@ -590,7 +590,111 @@ class Environment:
         print("topology:%s(%d,%d) with %d region(s)" % (self.__toponame, self.__nodenum, self.__linknum, self.__regionnum))
         print("--------------------------")
 
+    def cal_terminal_demands(self, TM):
+        ternimalTM = copy.deepcopy(TM)
+
+        actionmatrix = []
+        for src in range(self.__nodenum):
+            actionmatrix.append([])
+            for dst in range(self.__nodenum):
+                if src == dst:
+                    actionmatrix[src].append([])
+                else:
+                    action = [1.0/len(self.__oripathmaxtrix[src][dst])]*len(self.__oripathmaxtrix[src][dst])
+                    actionmatrix[src].append([round(item, 6) for item in action])
+
+        flowmap = []
+        for _ in range(self.__nodenum):
+            flowmap.append([0.0]*self.__nodenum)
+        for src in range(self.__nodenum):
+            for dst in range(self.__nodenum):
+                srid = self.__noderegionid[src]
+                trid = self.__noderegionid[dst]
+                if srid == trid:
+                    continue
+                sources = [src]
+                sizes = [TM[src][dst]]
+                ingressNodes = {}
+                while True:
+                    if len(sources) == 0:
+                        break
+                    pathSet = self.__oripathmaxtrix[sources[0]][dst]
+                    action = actionmatrix[sources[0]][dst]
+                    subsizes, gates = self.com_path_flow(flowmap, pathSet, action, sizes[0])
+                    sources.pop(0)
+                    sizes.pop(0)
+                    for gwid in range(len(gates)):
+                        if gates[gwid] == dst:
+                            continue
+                        sources.append(gates[gwid])
+                        sizes.append(subsizes[gwid])
+                        if self.__noderegionid[gates[gwid]] == trid:
+                            if gates[gwid] not in ingressNodes:
+                                ingressNodes[gates[gwid]] = subsizes[gwid]
+                            else:
+                                ingressNodes[gates[gwid]] += subsizes[gwid]
+                for ingress in ingressNodes.keys():
+                    ternimalTM[ingress][dst] += ingressNodes[ingress]
+
+        return ternimalTM
+
     def sort_intra_demand(self, aveNum = 40):
+        # 1. get average demand rates
+        demandNum = len(self.__demrates[0])
+        demrate = np.array([0]*demandNum)
+        for i in range(aveNum):
+            rate = np.array(self.__demrates[i])
+            demrate = demrate + rate
+        demrate /= aveNum
+        TM = []
+        demId = 0
+        for i in range(self.__nodenum):
+            TM.append([0.0]*self.__nodenum)
+            for j in range(self.__nodenum):
+                if i == j:
+                    continue
+                TM[i][j] = demrate[demId]
+                demId += 1
+        ternimalTM = self.cal_terminal_demands(TM)
+
+        # 2. get region demand rates
+        regionRates = [[] for _ in range(self.__regionnum)]
+        regionDemIds = [[] for _ in range(self.__regionnum)]
+        totalTraffic_tmp = [[0, 0] for _ in range(self.__regionnum)]
+        demId = 0
+        for src in range(self.__nodenum):
+            for dst in range(self.__nodenum):
+                if src == dst:
+                    continue
+                sRegion = self.__noderegionid[src]
+                tRegion = self.__noderegionid[dst]
+                if sRegion == tRegion:
+                    regionRates[sRegion].append(ternimalTM[src][dst])
+                    # if (src not in self.__bordernodes[sRegion]):
+                    #     regionDemIds[sRegion].append(0)
+                    # else:
+                    #     regionDemIds[sRegion].append(1)
+                    regionDemIds[sRegion].append(demId)
+                    totalTraffic_tmp[sRegion][0] += ternimalTM[src][dst]
+                else:
+                    totalTraffic_tmp[sRegion][1] += ternimalTM[src][dst]
+                demId += 1
+        # print(totalTraffic_tmp)
+        # print(self.__bordernodes)
+        # 3. sort region's demands
+        smallDemIdMap = [0]*demandNum
+        for rid in range(self.__regionnum):
+            index = np.argsort(regionRates[rid])
+            res = [round(regionRates[rid][i], 0) for i in index]
+            index = index[:int(len(regionRates[rid])*self.__smallratio)]
+            # print("small demand num", int(len(regionRates[rid])), len(index))
+            for i in index:
+                smallDemIdMap[regionDemIds[rid][i]] = 1
+        # exit()
+
+        return smallDemIdMap
+
+    def sort_intra_demand_old(self, aveNum = 40):
         # 1. get average demand rates
         demandNum = len(self.__demrates[0])
         demrate = np.array([0]*demandNum)
@@ -632,6 +736,7 @@ class Environment:
         # fileout = open("smallDemIdMap.txt", 'w')
         # print(smallDemIdMap, file = fileout)
         # fileout.close()
+        # print("small demand num", int(len(regionRates[rid])), demandNum)
         # exit()
 
         return smallDemIdMap
@@ -752,179 +857,3 @@ class Environment:
         
         
 
-
-    
-
-        
-    # def thread_com_flowmap_(self, procid, start, end):
-    #     t0 = time.time()
-    #     flowmap = []
-    #     for _ in range(self.__nodenum):
-    #         flowmap.append([0.0]*self.__nodenum)
-
-    #     # c = 0
-    #     # for i in range(10000):
-    #     #     for j in range(3000):
-    #     #         c = c + 1
-    #     for src in range(self.__nodenum):
-    #         for dst in range(start, end):
-    #             if src == dst:
-    #                 continue
-    #             sources = [src]
-    #             sizes = [self.__TM[src][dst]]
-    #             while True:
-    #                 if len(sources) == 0:
-    #                     break
-    #                 pathSet = self.__oripathmaxtrix[sources[0]][dst]
-    #                 action = self.__actionmatrix[sources[0]][dst]
-    #                 subsizes, gates = self.com_path_flow(flowmap, pathSet, action, sizes[0])
-    #                 sources.pop(0)
-    #                 sizes.pop(0)
-    #                 for gwid in range(len(gates)):
-    #                     if gates[gwid] == dst:
-    #                         continue
-    #                     sources.append(gates[gwid])
-    #                     sizes.append(subsizes[gwid])
-    #     self.__flowmap[procid] = flowmap
-    #     t1 = time.time()
-    #     print("finish time", t1 - t0)
-    #     self.__finishflag[procid] = 1
-    #     # return flowmap
-
-    # def process_com_flowmap(self, start, end, conn):
-    #     t0 = time.time()
-    #     flowmap = []
-    #     for _ in range(self.__nodenum):
-    #         flowmap.append([0.0]*self.__nodenum)
-    #     for src in range(self.__nodenum):
-    #         for dst in range(start, end):
-    #             if src == dst:
-    #                 continue
-    #             sources = [src]
-    #             sizes = [self.__TM[src][dst]]
-    #             while True:
-    #                 if len(sources) == 0:
-    #                     break
-    #                 pathSet = self.__oripathmaxtrix[sources[0]][dst]
-    #                 action = self.__actionmatrix[sources[0]][dst]
-    #                 subsizes, gates = self.com_path_flow(flowmap, pathSet, action, sizes[0])
-    #                 sources.pop(0)
-    #                 sizes.pop(0)
-    #                 for gwid in range(len(gates)):
-    #                     if gates[gwid] == dst:
-    #                         continue
-    #                     sources.append(gates[gwid])
-    #                     sizes.append(subsizes[gwid])
-    #     t1 = time.time()
-    #     print("finish time", t1 - t0)
-    #     # return flowmap
-    #     conn.send(flowmap)
-
-    # def thread_com_flowmap(self, procid, start, end):
-    #     # print("thread %d start" % procid)
-    #     count = 0
-    #     while True:
-    #         if self.__finishflag[procid] == 0:
-    #             flowmap = []
-    #             for _ in range(self.__nodenum):
-    #                 flowmap.append([0.0]*self.__nodenum)
-
-    #             for src in range(self.__nodenum):
-    #                 for dst in range(start, end):
-    #                     if src == dst:
-    #                         continue
-    #                     sources = [src]
-    #                     sizes = [self.__TM[src][dst]]
-    #                     while True:
-    #                         if len(sources) == 0:
-    #                             break
-    #                         pathSet = self.__oripathmaxtrix[sources[0]][dst]
-    #                         action = self.__actionmatrix[sources[0]][dst]
-    #                         subsizes, gates = self.com_path_flow(flowmap, pathSet, action, sizes[0])
-    #                         sources.pop(0)
-    #                         sizes.pop(0)
-    #                         for gwid in range(len(gates)):
-    #                             if gates[gwid] == dst:
-    #                                 continue
-    #                             if subsizes[gwid] <= 0.001:
-    #                                 continue
-    #                             sources.append(gates[gwid])
-    #                             sizes.append(subsizes[gwid])
-    #             self.__flowmap[procid] = flowmap
-    #             # t2 = time.time()
-    #             # print("finish time", procid, t2 - t1)
-    #             self.__finishflag[procid] = 1
-    #         else:
-    #             time.sleep(0.01)
-
-
-    # def compute_flowmap_paralell_bak(self):
-    #     t0 = time.time()
-    #     procNum = 3
-    #     # if self.__updatenum == 0:
-    #     #     step = self.__nodenum//procNum
-    #     #     partitions = [procid*step for procid in range(procNum)] + [self.__nodenum]
-
-    #     #     # multi thread
-    #     #     self.__flowmap = [[] for _ in range(procNum)]
-    #     #     self.__finishflag = [0]*procNum
-    #     #     threads = []
-    #     #     for procid in range(procNum):
-    #     #         t= threading.Thread(target = self.thread_com_flowmap, args = (procid, partitions[procid], partitions[procid+1], ))
-    #     #         threads.append(t)
-    #     #     for thr in threads:
-    #     #         thr.setDaemon(True)
-    #     #         thr.start()
-    #     # else:
-    #     #     self.__finishflag = [0]*procNum
-    #     # t1 = time.time()
-    #     # print("run", t1 - t0)
-    #     # # thr.join()
-    #     # time.sleep(2)
-    #     # while 1:
-    #     #     time.sleep(0.1)
-    #     #     if sum(self.__finishflag) == procNum:
-    #     #         break
-    #     # # print(len(self.__flowmap))
-    #     # flowmapList = self.__flowmap
-
-
-    #     procNum = 6
-    #     # if self.__updatenum == 0:
-    #     step = self.__nodenum//procNum
-    #     partitions = [procid*step for procid in range(procNum)] + [self.__nodenum]
-    #     pool = mp.Pool(procNum)
-    #     connList = []
-    #     result = []
-    #     for procid in range(procNum):
-    #         parent_conn, child_conn = mp.Pipe()
-    #         connList.append(parent_conn)
-    #         result.append(pool.apply_async(self.process_com_flowmap, args = (partitions[procid], partitions[procid+1], child_conn, )))
-    #     t1 = time.time()
-    #     print("run", t1 - t0)
-    #     print(time.time())
-    #     # time.sleep(3)
-    #     # # pool.close()
-    #     # # pool.join()
-    #     flowmapList = []
-    #     for parent_conn in connList:
-    #         flowmapList.append(parent_conn.recv())
-    #     t2 = time.time()
-    #     print("get", t2 - t1)
-    #     # flowmapList = []
-    #     # for res in result:
-    #     #     flowmapList.append(res.get())
-
-    #     flowmap = []
-    #     for _ in range(self.__nodenum):
-    #         flowmap.append([0.0]*self.__nodenum)
-    #     for src in range(self.__nodenum):
-    #         for dst in range(self.__nodenum):
-    #             for flowmap_sub in flowmapList:
-    #                 flowmap[src][dst] += flowmap_sub[src][dst]
-    #     t3 = time.time()
-    #     print("add", t3 - t2)
-
-    #     return flowmap
-
-    
