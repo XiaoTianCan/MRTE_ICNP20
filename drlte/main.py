@@ -78,16 +78,16 @@ def run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, b
 
 ''' para setting area '''
 path_pre = "/home/server/gengnan/NATE_project/"
-time_stamp = "0310"
-target = "converge"
+time_stamp = "0311"
+target = "failure"
 scheme = "MDA" # MDA MSA ECMP
-topo = "1221c" # 1221c google briten12r16grid
+topo = "google" # 1221c google briten12r16grid
 para_p = [3, 3, 1] # intra path num; gate num; gate path num
 path_num = para_p[0]*100 + para_p[1]*10 + para_p[2]
 synthesis_type = "gravNR250" # gravNR250 gravNR50c
-epochs = 1500
+epochs = 3000
 rwd_flag = 0
-small_ratio = 0.1 # TODO: change to small ratio in function
+small_ratio = 0.8
 if topo == "briten12r16grid":
     block_num = 16
 else:

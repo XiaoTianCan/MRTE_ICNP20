@@ -92,7 +92,35 @@ def update_step(maxutil, maxutilList, netutilList, agents, regionNodeNeibor, act
                 ret_c = list(result)
                 actions.append(ret_c)
         elif RWD_FLAG == 4:
-            beta0 = 0.7
+            beta0 = 0.3
+            beta1 = 1 - beta0
+            for agentid in range(agentNum):
+                state = netutilList[agentid//2]
+                if agentid % 2 == 0:
+                    reward = -1*maxutilList[agentid//2]
+                    result = agents[agentid].predict(state, reward)
+                else:
+                    maxutil_nei = [maxutilList[nrid] for nrid in regionNodeNeibor[agentid//2]]
+                    reward = -beta0*maxutilList[agentid//2] - beta1*sum(maxutil_nei)/len(maxutil_nei)
+                    result = agents[agentid].predict(state, reward)
+                ret_c = list(result)
+                actions.append(ret_c)
+        elif RWD_FLAG == 5:
+            beta0 = 0.5
+            beta1 = 1 - beta0
+            for agentid in range(agentNum):
+                state = netutilList[agentid//2]
+                if agentid % 2 == 0:
+                    reward = -1*maxutilList[agentid//2]
+                    result = agents[agentid].predict(state, reward)
+                else:
+                    maxutil_nei = [maxutilList[nrid] for nrid in regionNodeNeibor[agentid//2]]
+                    reward = -beta0*maxutilList[agentid//2] - beta1*sum(maxutil_nei)/len(maxutil_nei)
+                    result = agents[agentid].predict(state, reward)
+                ret_c = list(result)
+                actions.append(ret_c)
+        elif RWD_FLAG == 6:
+            beta0 = 0.0
             beta1 = 1 - beta0
             for agentid in range(agentNum):
                 state = netutilList[agentid//2]
@@ -126,6 +154,14 @@ def update_step(maxutil, maxutilList, netutilList, agents, regionNodeNeibor, act
                 state = netutilList[agentid]
                 maxutil_nei = [maxutilList[nrid] for nrid in regionNodeNeibor[agentid]]
                 reward = -0.7*maxutilList[agentid] - 0.3*sum(maxutil_nei)/len(maxutil_nei)
+                result = agents[agentid].predict(state, reward)
+                ret_c = list(result)
+                actions.append(ret_c[:actionBorderline[agentid]])
+                actions.append(ret_c[actionBorderline[agentid]:])
+        elif RWD_FLAG == 3:
+            for agentid in range(agentNum):
+                state = netutilList[agentid]
+                reward = -1*maxutil
                 result = agents[agentid].predict(state, reward)
                 ret_c = list(result)
                 actions.append(ret_c[:actionBorderline[agentid]])
@@ -221,7 +257,7 @@ def init_multi_agent(globalSess):
 
 def log_to_file(maxutil, fileUtilOut, netutilList, fileEdgeOut):
     print(maxutil, file=fileUtilOut)
-    if not IS_TRAIN and AGENT_TYPE != "ECMP" and MAX_EPISODES == 1:
+    if fileEdgeOut != None:
         netutils = []
         for item in netutilList:
             netutils += item
@@ -297,6 +333,6 @@ if __name__ == "__main__":
     
     timeRecord.append(time.time())
     fileUtilOut.close()
-    if not IS_TRAIN and AGENT_TYPE != "ECMP" and MAX_EPISODES == 1:
+    if fileEdgeOut != None:
         fileEdgeOut.close()
     log_time_file(timeRecord, dirLog)

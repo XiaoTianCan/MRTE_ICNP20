@@ -17,17 +17,17 @@ def read_file(filename, start_index = 0, end_index = 999999999):
     return ret
 
 def converge(topo, start, synthesis_type = "", stampList = []):
-    length = 40000
     filename = LOG_PATH + "objvals/" + topo + "_mcf_obj_vals%s.txt" % (synthesis_type)
     mcf_ret = read_file(filename, start, start+1)[0]
-    # mcf_ret = 0.432
 
     res = []
+    win = 20
     for stamp_type in stampList:
         filename = LOG_PATH + "log/" + stamp_type + "/util.log"
-        date_ret = read_file(filename, 0, length)
+        date_ret = read_file(filename, 0)
+        print(date_ret[-1])
+        date_ret = [np.mean(date_ret[i*win:i*win+win]) for i in range(len(date_ret)//win)] + [date_ret[-1]]
         res.append([item/mcf_ret for item in date_ret])
-        print(date_ret[-1]/mcf_ret)
 
     for index in range(len(stampList)):
         stamp_type = stampList[index]
@@ -39,6 +39,11 @@ def converge(topo, start, synthesis_type = "", stampList = []):
         plt.savefig(LOG_PATH + "figures/%s.png" % (stamp_type))
         print(LOG_PATH + "figures/%s.png" % (stamp_type))
         plt.clf()
+    
+        outfile = open(LOG_PATH + "dat/%s_converge%s_line%d.dat" % (topo, synthesis_type, index), 'w')
+        for i in range(len(res[index])):
+            outfile.write('%d %f\n' % (i*10, res[index][i]))
+        outfile.close()
 
 def converge_train(topo, start, synthesis_type = "", stampList = []):
     length = 80000
@@ -62,12 +67,13 @@ def converge_train(topo, start, synthesis_type = "", stampList = []):
         print("%s.png" % (stamp_type))
         plt.clf()
 
-def read_edge_file(filename, regionEdgeNum, lineLen = 5):
+def read_edge_file(filename, regionEdgeNum, start = 1, end = 6):
     filein = open(filename)
     lines = filein.readlines()
     filein.close()
     res = []
-    for i in range(1, lineLen+1):
+    lineLen = end - start
+    for i in range(start, end):
         line = lines[i].strip()[1:-1]
         # print(line)
         lineList = line.split(',')
@@ -86,6 +92,7 @@ def read_edge_file(filename, regionEdgeNum, lineLen = 5):
         tmp.append(max(res2[startIndex:startIndex+regionEdgeNum[i]]))
         startIndex += regionEdgeNum[i]
     return res/lineLen, tmp
+
 def coninfer(topo, schemeList, figurename, synthesis_type = "", stampList = []):
     regionEdgeNumDict = {"google": [68, 35, 57], "briten15r5loopb": [48, 54, 51, 55, 70], "briten15r5line": [43, 53, 50, 54, 58], "1221c": [44, 18, 20, 56, 14]}
     utils = {}
@@ -151,7 +158,7 @@ def coninfer(topo, schemeList, figurename, synthesis_type = "", stampList = []):
         outfile.write('\n')
     outfile.close()
 
-def get_incre_effect(topo, schemeList, start, end, figurename, synthesis_type = "", stampList = [], epoch = 18000, runtime = []):
+def get_incre_effect(topo, schemeList, start, end, figurename, synthesis_type = "", stampList = [], epoch = 3000, runtime = []):
     utils = {}
     scheme = "MCF"
     filename = LOG_PATH + "objvals/" + topo + "_" + scheme.lower() + "_obj_vals%s.txt" % (synthesis_type)
@@ -165,7 +172,7 @@ def get_incre_effect(topo, schemeList, start, end, figurename, synthesis_type = 
         ret = read_file(filename)
         utils[scheme] = []
         for j in range(start, end):
-            ret_tmp = ret[j*epoch+epoch-50:j*epoch+epoch]
+            ret_tmp = ret[j*epoch+epoch-3:j*epoch+epoch]
             utils[scheme].append(sum(ret_tmp)/len(ret_tmp))
     
     filedat = []
@@ -174,7 +181,7 @@ def get_incre_effect(topo, schemeList, start, end, figurename, synthesis_type = 
         result = [utils[scheme][i]/utils["MCF"][i] for i in range(length)]
         result.sort()
         filedat.append(result)
-        print(np.mean(result))
+        print(np.mean(result), np.median(result), np.percentile(result, 95), np.percentile(result, 5))
         plt.plot(result, [(i+1)/length for i in range(length)], linewidth=1.5, label=scheme)
     plt.xlabel("Performance Ratio", fontsize=12)
     plt.ylabel("CDF", fontsize=12)
@@ -185,12 +192,13 @@ def get_incre_effect(topo, schemeList, start, end, figurename, synthesis_type = 
     print(LOG_PATH + "figures/%s_cdf.png\n" % (figurename))
     plt.clf()
 
-    runtime.reverse()
-    filedat.reverse()
+    # runtime.reverse()
+    # filedat.reverse()
 
     outfile = open(LOG_PATH + "dat/%s_incre%s_hist.dat" % (topo, synthesis_type), 'w')
     for i in range(len(schemeList)):
-        rowval = [i, np.mean(filedat[i]), np.mean(filedat[i]), np.mean(filedat[i])+np.var(filedat[i]), runtime[i]]
+        # rowval = [i, np.mean(filedat[i]), np.mean(filedat[i]), np.mean(filedat[i])+np.var(filedat[i]), runtime[i]]
+        rowval = [i, np.median(filedat[i]), np.median(filedat[i]), np.median(filedat[i]), runtime[i]]
         outfile.write(' '.join(list(map(str, rowval))) + '\n')
     outfile.close()
 
@@ -323,6 +331,153 @@ def infer2(topo, schemeList, start, end, figurename, synthesis_type = "", stampL
         outfile.write(' '.join(list(map(str, rowval))) + '\n')
     outfile.close()
 
+def get_rwd_effect(topo, schemeList, start, end, figurename, synthesis_type = "", stampList = []):
+    utils = {}
+    for i in range(len(schemeList)):
+        scheme = schemeList[i]
+        stamp_type = stampList[i]
+        filename = LOG_PATH + "log/" + stamp_type + "/maxutils.result"
+        ret = read_file(filename, start, end)
+        utils[scheme] = ret
+        # print(scheme, len(ret), ret[0:5])
+    
+    scheme = "MCF"
+    if topo != "briten12r16grid":
+        filename = LOG_PATH + "objvals/" + topo + "_" + scheme.lower() + "_obj_vals%s.txt" % (synthesis_type)
+    else:
+        filename = LOG_PATH + "objvals/" + topo + "_p3_3_1_obj_vals%s.txt" % (synthesis_type)
+    ret = read_file(filename, start, end)
+    utils[scheme] = ret
+
+    length = len(utils["MCF"])
+    filedat = []
+    for scheme in schemeList:
+        if scheme == "DRLTE":
+            result = [max([1.0, utils[scheme][i]*(-1)]) for i in range(length)]
+        else:
+            result = [max([1.0, utils[scheme][i]/utils["MCF"][i]]) for i in range(length)]
+        result.sort()
+        filedat.append(result)
+        plt.plot(result, [(i+1)/length for i in range(length)], linewidth=1.5, label=scheme)
+    plt.xlabel("Performance Ratio", fontsize=12)
+    plt.ylabel("CDF", fontsize=12)
+    plt.legend(fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.savefig(LOG_PATH + "figures/%s_cdf.png" % (figurename))
+    print(LOG_PATH + "figures/%s_cdf.png\n" % (figurename))
+    plt.clf()
+
+    outfile = open(LOG_PATH + "dat/%s_rwd%s_box.dat" % (topo, synthesis_type), 'w')
+    for i in range(length):
+        outfile.write(str((i+1)/length) + ' ')
+        for j in range(len(schemeList)):
+            outfile.write(str(filedat[j][i]) + ' ')
+        outfile.write('\n')
+    outfile.close()
+
+def read_edge_file2(filename, regionEdgeNum, start = 40, end = 200, step = 5):
+    filein = open(filename)
+    lines = filein.readlines()
+    filein.close()
+
+    edgeNum = sum(regionEdgeNum)
+    tmp = []
+    maxutils = []
+    ratio5utils = []
+    ratio10utils = []
+    productutils = []
+    sumutils = []
+    for i in range(start*step, end*step):
+        line = lines[i].strip()[1:-1]
+        lineList = line.split(',')
+
+        if i == start*step:
+            tmp = np.array(list(map(float, lineList)))
+        elif i%step == 0:
+            res = list(tmp/step)
+            regionutils = []
+            startIndex = 0
+            for j in range(len(regionEdgeNum)):
+                regionutils.append(max(res[startIndex:startIndex+regionEdgeNum[j]]))
+                startIndex += regionEdgeNum[j]
+            maxutils.append(max(regionutils))
+            productutils.append(np.prod(regionutils))
+            sumutils.append(sum(regionutils))
+            res.sort()
+            ratio5utils.append(sum(res[:int(edgeNum*0.05)])/(int(edgeNum*0.05)))
+            ratio10utils.append(sum(res[:int(edgeNum*0.1)])/(int(edgeNum*0.1)))
+            tmp = np.array(list(map(float, lineList)))
+        else:
+            tmp += np.array(list(map(float, lineList)))
+    res = list(tmp/step)
+    regionutils = []
+    startIndex = 0
+    for j in range(len(regionEdgeNum)):
+        regionutils.append(max(res[startIndex:startIndex+regionEdgeNum[j]]))
+        startIndex += regionEdgeNum[j]
+    maxutils.append(max(regionutils))
+    productutils.append(np.prod(regionutils))
+    sumutils.append(sum(regionutils))
+    res.sort()
+    ratio5utils.append(sum(res[:int(edgeNum*0.05)])/(int(edgeNum*0.05)))
+    ratio10utils.append(sum(res[:int(edgeNum*0.1)])/(int(edgeNum*0.1)))
+
+    return maxutils, ratio5utils, ratio10utils, productutils, sumutils
+
+def get_rwd_effect2(topo, schemeList, start, end, figurename, synthesis_type = "", stampList = []):
+    regionEdgeNumDict = {"google": [68, 35, 57], "briten15r5loopb": [48, 54, 51, 55, 70], "briten15r5line": [43, 53, 50, 54, 58], "1221c": [44, 18, 20, 56, 14]}
+    # maxutilsDict = {}
+    # ratio5utilsDict = {}
+    # ratio10utilsDict = {}
+    # productutilsDict = {}
+    # sumutilsDict = {}
+    results = {}
+    for i in range(len(schemeList)):
+        stamp_type = stampList[i]
+        filename = LOG_PATH + "log/" + stamp_type + "/edge.log"
+        maxutils, ratio5utils, ratio10utils, productutils, sumutils = read_edge_file2(filename, regionEdgeNumDict[topo], start, end)
+        scheme = schemeList[i]
+        # maxutilsDict[scheme] = maxutils
+        # ratio5utilsDict[scheme] = ratio5utils
+        # ratio10utilsDict[scheme] = ratio10utils
+        # productutilsDict[scheme] = productutils
+        # sumutilsDict[scheme] = sumutils
+        results[scheme] = [maxutils, ratio5utils, ratio10utils, productutils, sumutils]
+
+    scheme0 = schemeList[0]
+    length = len(results[scheme0][0])
+    filedat = []
+    for scheme in schemeList:
+        for i in range(len(results[scheme0])):
+            # res = [results[scheme][i][j]/results[scheme0][i][j] for j in range(length)]
+            res = [100*(results[scheme][i][j]-results[scheme0][i][j])/results[scheme][i][j] for j in range(length)]
+            filedat.append(res)
+
+    outfile = open(LOG_PATH + "dat/%s_rwd%s_box2.dat" % (topo, synthesis_type), 'w')
+    for i in range(length):
+        outfile.write(str(i) + ' ')
+        for j in range(len(schemeList)*len(results[scheme0])):
+            outfile.write(str(filedat[j][i]) + ' ')
+        outfile.write('\n')
+    outfile.close()
+
+    outfile = open(LOG_PATH + "dat/%s_rwd%s_hist2.dat" % (topo, synthesis_type), 'w')
+    for i in range(len(schemeList)):
+        outfile.write(str(i) + ' ')
+        for j in range(len(results[scheme0])):
+            outfile.write(str(np.median(filedat[i*len(results[scheme0]) + j])) + ' ')
+        outfile.write('\n')
+    outfile.close()
+
+    outfile = open(LOG_PATH + "dat/%s_rwd%s_hist3.dat" % (topo, synthesis_type), 'w')
+    for i in range(len(results[scheme0])):
+        outfile.write(str(i) + ' ')
+        for j in range(len(schemeList)):
+            outfile.write(str(np.median(filedat[j*len(results[scheme0]) + i])) + ' ')
+        outfile.write('\n')
+    outfile.close()
+
 def failure(topo, schemeList, start, end, synthesis_types, stampListMMA, stampListECMP, stampListDRLTE = []):
     length = end - start
     filedat = []
@@ -393,6 +548,7 @@ def failure(topo, schemeList, start, end, synthesis_types, stampListMMA, stampLi
     outfile = open(LOG_PATH + "dat/%s_failure_hist.dat" % (topo), 'w')
     for i in range(len(schemeList)):
         rowval = [i, np.mean(filedat[i]), np.mean(filedat[i]), np.mean(filedat[i])+np.var(filedat[i])]
+        print(rowval)
         outfile.write(' '.join(list(map(str, rowval))) + '\n')
     outfile.close()
 
@@ -411,6 +567,7 @@ def scalability(topo, TMid, synthesis_type = "", stampList = []):
         res.append([item/mcf_ret for item in date_ret])
         # print(date_ret[-1]/mcf_ret)
         converge_point = sum([item/mcf_ret for item in date_ret[-100:]])/100.0
+        converge_point = np.median([item/mcf_ret for item in date_ret[-100:]])
         vals.append(converge_point)
 
     print(vals)
@@ -445,13 +602,13 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 ################
 
 # google gravNR250
-# stamps = ["0302_google_infer_MMA_p331_gravNR250_comm5_incre0.3_alter3_LB_epi40", "0303_google_infer_drlte_gravNR250_win10_itr5k_b1_pall10"]
+# stamps = ["0312_google_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", "0303_google_infer_drlte_gravNR250_win10_itr5k_b1_pall10"]
 # figurename = stamps[0]
 # infer("google", ["MMA", "DRLTE", "ECMP", "HPMCF"], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
 # exit()
 
 # 1221c gravNR250
-# stamps = ["0302_1221c_infer_MMA_p331_gravNR250_comm5_incre0.3_alter3_LB_epi40", "0303_1221c_infer_drlte_gravNR250_win10_itr5k_b1_pall10"]
+# stamps = ["0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", "0303_1221c_infer_drlte_gravNR250_win10_itr5k_b1_pall10"]
 # figurename = stamps[0]
 # infer("1221c", ["MMA", "DRLTE", "ECMP", "HPMCF"], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
 # exit()
@@ -475,18 +632,18 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 # failure
 ################
 # google failure
-# stamps1 = ["0302_google_failure_MMA_p331_gravNR250_comm5_incre0.3_alter3_LB_epi40"]
+# stamps1 = ["0312_google_failure_MDA_p331_gravNR250_rwd0_small0.80_epoch3000_1"]
 # stamps2 = ["0305_google_failure_ECMP_p331_gravNR250"]
 # stamps3 = ["0303_google_failure_drlte_gravNR250_win10_itr5k_b1_pall10"]
 # failure("google", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
 # exit()
 
 # 1221c failure
-# stamps1 = ["0302_1221c_failure_MMA_p331_gravNR250_comm5_incre0.3_alter3_LB_epi40"]
-# stamps2 = ["0305_1221c_failure_ECMP_p331_gravNR250"]
-# stamps3 = ["0303_1221c_failure_drlte_gravNR250_win10_itr5k_b1_pall10"]
-# failure("1221c", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
-# # exit()
+stamps1 = ["0311_1221c_failure_MDA_p331_gravNR250_rwd0_small0.80_epoch3000"]
+stamps2 = ["0305_1221c_failure_ECMP_p331_gravNR250"]
+stamps3 = ["0303_1221c_failure_drlte_gravNR250_win10_itr5k_b1_pall10"]
+failure("1221c", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
+exit()
 
 # briten12r16grid failure
 # stamps1 = ["0303_briten12r16grid_failure_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20"]
@@ -498,39 +655,57 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 ################
 # incre
 ################
-
-# stamps = ["0305_1221c_train_MMA_p331_gravNR250_comm5_incre0.1_alter3_LB_epi40", "0302_1221c_train_MMA_p331_gravNR250_comm5_incre0.3_alter3_LB_epi40",    "0305_1221c_train_MMA_p331_gravNR250_comm5_incre0.5_alter3_LB_epi40",    "0305_1221c_train_MMA_p331_gravNR250_comm5_incre0.7_alter3_LB_epi40",    "0305_1221c_train_MMA_p331_gravNR250_comm5_incre0.9_alter3_LB_epi40"]
-# figurename = stamps[0]
-# # runtime = [30, 31.6, 33.33, 35.7, 34.77]
-# # runtime = [30, 31.6, 33.33, 35.7, 35.77]
-# # runtime = [item*60/40 for item in runtime]
-# runtime = [45.33-1, 48.67-1, 50.5-1, 53.5-1, 58.42-1]
+# stamps = ["0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.00_epoch3000", 
+# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.20_epoch3000", 
+# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.40_epoch3000", 
+# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.60_epoch3000", 
+# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small1.00_epoch3000"]
+# runtime = [7*60+44, 7.5*60, 6*60+50, 6*60+15, 5*60+37, 3*60+28]
+# runtime = [item/40 for item in runtime]
 # print(runtime)
-# get_incre_effect("1221c", ["MMA%d" % i for i in range(len(stamps))], 0, 40, figurename, synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
+# get_incre_effect("1221c", ["MMA%d" % i for i in range(len(stamps))], 0, 10, stamps[0], synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
+# exit()
+
+################
+# convergence
+################
+# stamps = ["0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch1000", 
+# "0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch2000", 
+# "0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+# "0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.00_epoch1000", 
+# "0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.00_epoch2000", 
+# "0311_1221c_converge_MDA_p331_gravNR250_rwd0_small0.00_epoch3000"]
+# converge("1221c", 0, synthesis_type = "_gravNR250", stampList = stamps)
 # exit()
 
 ################
 # reward
 ################
-# stamps = ["0306_1221c_coninfer_MMA_p331_gravNR250_comm2_incre0.1_alter3_LB",
-# "0306_1221c_coninfer_MMA_p331_gravNR250_comm3_incre0.1_alter3_LB",
-# # "0306_1221c_coninfer_MMA_p331_gravNR250_comm4_incre0.1_alter3_LB",
-# '0306_1221c_coninfer_MMA_p331_gravNR250_comm5_incre0.1_alter3_LB', 
-# "0306_1221c_coninfer_MMA_p331_gravNR250_comm6_incre0.1_alter3_LB"]
-stamps = ["0308_1221c_newconinfer_MMA_p331_gravNR250_comm2_incre0.1_alter1_LB_epo1500_TM1", "0308_1221c_newconinfer_MMA_p331_gravNR250_comm3_incre0.1_alter1_LB_epo1500_TM1", 
-"0308_1221c_newconinfer_MMA_p331_gravNR250_comm5_incre0.1_alter1_LB_epo1500_TM1"]
-# stamps = ["0220_briten15r5line_coninfer_MMA_p331_bimoSame28_comm3_incre0.7_alter3_LB", "0220_briten15r5line_coninfer_MMA_p331_bimoSame28_comm2_incre0.7_alter3_LB", "0220_briten15r5line_coninfer_MMA_p331_bimoSame28_comm4_incre0.7_alter3_LB", "0220_briten15r5line_coninfer_MMA_p331_bimoSame28_comm5_incre0.7_alter3_LB"]
-filename = stamps[0]
-coninfer("1221c", ["comm2", "comm3", "comm5"], filename, "_gravNR250", stamps)
+# stamps = ["0312_1221c_infer_MDA_p331_gravNR250_rwd6_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd4_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd5_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+# "0312_1221c_infer_MDA_p331_gravNR250_rwd1_small0.80_epoch3000"]
+# stamps = ["0312_1221c_infer_MDA_p331_gravNR250_rwd7_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd4_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd5_small0.80_epoch3000", 
+# "0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+# "0312_1221c_infer_MDA_p331_gravNR250_rwd8_small0.80_epoch3000"]
+# figurename = stamps[0] + "_rwd"
+# get_rwd_effect("1221c", ["MMA%d" % i for i in range(len(stamps))], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
+# exit()
 
+
+stamps = ["0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+"0311_1221c_infer_MSA_p331_gravNR250_rwd1_small0.80_epoch3000", 
+"0311_1221c_infer_MSA_p331_gravNR250_rwd2_small0.80_epoch3000", 
+"0312_1221c_infer_MSA_p331_gravNR250_rwd3_small0.80_epoch3000_1"]
+figurename = stamps[0] + "_rwd"
+get_rwd_effect2("1221c", ["MMA%d" % i for i in range(len(stamps))], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
 exit()
 
-################
-# alternate
-################
-# stamps = ["0306_1221c_converge_MMA_p331_gravNR250_comm5_incre0.1_alter9_LB_test2"]
-# figurename = stamps[0]
-# alternate("1221c", 9, 0, figurename, synthesis_type = "_gravNR250", stampList = stamps)
+
 
 
 exit()

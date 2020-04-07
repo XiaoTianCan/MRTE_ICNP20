@@ -40,7 +40,7 @@ class SimEnv(Env):
         self._log_maxutil = None
         self._log_reward = None
 
-    def reset_env(self, failure_flag = False):
+    def reset_env(self, failure_flag = True):
         self._path_pre = "/home/server/gengnan/NATE_project/"
         if not os.path.exists(self._path_pre):
             print("root dir ERROR")
@@ -142,7 +142,10 @@ class SimEnv(Env):
             self._state_set.append(state_tmp)
     
     def get_opt_vals(self, inferFlag = False):
-        obj_file = self._path_pre + "outputs/objvals/" + self._topo_name + "_mcf_obj_vals%s.txt" % (self._synthesis_type)
+        if self._topo_name == "briten12r16grid":
+            obj_file = self._path_pre + "outputs/objvals/" + self._topo_name + "_p3_3_1_obj_vals%s.txt" % (self._synthesis_type)
+        else:
+            obj_file = self._path_pre + "outputs/objvals/" + self._topo_name + "_mcf_obj_vals%s.txt" % (self._synthesis_type)
         infile = open(obj_file, "r")
         lines = infile.readlines()
         if self._failure_flag:
@@ -168,7 +171,8 @@ class SimEnv(Env):
         return reward
     
     def get_reward_failure(self, action, TM_offset = 40):
-        curr_demid = TM_offset + self._win_size + (self._update_count//10) % self._max_epoch
+        # curr_demid = TM_offset + self._win_size + (self._update_count//10) % self._max_epoch
+        curr_demid = self._win_size + (self._update_count//10) % self._max_epoch
         curr_demrate = self._demrates[curr_demid]
         opt_val = self._mcf_vals[curr_demid]
         self.convert_action(action)
@@ -181,8 +185,8 @@ class SimEnv(Env):
     
     def convert_action(self, action):
         brokenLinkIndex = self._broken_links[self._update_count][0]
-        # action[brokenLinkIndex*2] = 99
-        # action[brokenLinkIndex*2 + 1] = 99
+        action[brokenLinkIndex*2] = 99
+        action[brokenLinkIndex*2 + 1] = 99
         return action
 
     def get_broken_links(self):
