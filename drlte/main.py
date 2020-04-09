@@ -11,7 +11,7 @@ import time
 
 def get_stamp_type(time_stamp, topo, target, scheme, path_num, synthesis_type, rwd_flag, small_ratio, epochs, block_num, stamp_tail):
     stamp_type = "%s_%s_%s_%s_p%d_%s" % (time_stamp, topo, target, scheme, path_num, synthesis_type)
-    if scheme == "MSA" or scheme == "MDA":
+    if scheme == "MSA" or scheme == "MDA" or scheme == "MDAs":
         stamp_type += "_rwd%d" % rwd_flag
         stamp_type += "_small%.2f" % small_ratio
     stamp_type += "_epoch%d" % (epochs)
@@ -78,25 +78,26 @@ def run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, b
 
 ''' para setting area '''
 path_pre = "/home/server/gengnan/NATE_project/"
-time_stamp = "0311"
-target = "failure"
+time_stamp = "0409"
+target = "converge"
 scheme = "MDA" # MDA MSA ECMP
-topo = "google" # 1221c google briten12r16grid
+topo = "briten12r16grid" # 1221c google briten12r16grid
 para_p = [3, 3, 1] # intra path num; gate num; gate path num
 path_num = para_p[0]*100 + para_p[1]*10 + para_p[2]
 synthesis_type = "gravNR250" # gravNR250 gravNR50c
-epochs = 3000
+epochs = 6000
 rwd_flag = 0
 small_ratio = 0.8
 if topo == "briten12r16grid":
     block_num = 16
 else:
     block_num = 0
-stamp_tail = ""
+stamp_tail = "b"
 
-run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, block_num)
+# run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, block_num)
 
-
+for block_num in [8, 4]:
+    run(path_pre, scheme, epochs, topo, synthesis_type, rwd_flag, small_ratio, block_num)
 
 # scp -r ckpoint/dirname server@128.46.202.245:/home/server/gengnan/NATE_project/outputs/ckpoint/
 

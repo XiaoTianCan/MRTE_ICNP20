@@ -18,7 +18,7 @@ if __name__ == '__main__':
     outfilePrefix = '../../outputs/'
 
     totalTMNum = 400
-    for topo in ["google", "briten12r16grid"]: #["googlec", "briten15r5loopb", "briten15r5line"]: # briten12r16grid
+    for topo in ["briten12r16grid"]: #["googlec", "briten15r5loopb", "briten15r5line"]: # briten12r16grid
         topoName = topo
         synthesis_type = "_gravNR250" #_gravNR250 _bimoSame28b
         print(topoName, synthesis_type)
@@ -28,15 +28,15 @@ if __name__ == '__main__':
         # get_mcf_obj_vals_failure(infilePrefix, outfilePrefix, topoName, totalTMNum = 10, pathType = "p3_3_1", synthesisType = synthesis_type)
         # get_sp_obj_vals_failure(infilePrefix, outfilePrefix, topoName, totalTMNum = 10, pathType = "p3_3_1", synthesisType = synthesis_type)
         # get_hp_obj_vals_failure(infilePrefix, outfilePrefix, topoName, totalTMNum = 10, pathType = "p3_3_1", synthesisType = synthesis_type)
-        get_hpmcf_obj_vals_failure(infilePrefix, outfilePrefix, topoName, totalTMNum = 10, pathType = "p3_3_1", synthesisType = synthesis_type)
+        # get_hpmcf_obj_vals_failure(infilePrefix, outfilePrefix, topoName, totalTMNum = 10, pathType = "p3_3_1", synthesisType = synthesis_type)
 
         ''' For normal scenario'''
-        totalTMNum = 200
+        totalTMNum = 1
         # get_region_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "p3_3_1", synthesisType = synthesis_type)
         # continue
         # get_mcf_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "p3_3_1", synthesisType = synthesis_type)
         # get_sp_pathset_region(infilePrefix, topoName, pathType = "p3_3_1", synthesisType = synthesis_type)
-        # get_sp_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "sp", synthesisType = synthesis_type)
+        get_sp_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "sp", synthesisType = synthesis_type)
         # get_lb_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "p3_3_1", synthesisType = synthesis_type)
         # get_hp_pathset_region(infilePrefix, topoName, pathType = "p3_3_1", synthesisType = synthesis_type)
         # get_hp_obj_vals(infilePrefix, outfilePrefix, topoName, totalTMNum, pathType = "hp", synthesisType = synthesis_type)

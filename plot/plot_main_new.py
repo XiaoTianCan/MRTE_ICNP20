@@ -552,12 +552,13 @@ def failure(topo, schemeList, start, end, synthesis_types, stampListMMA, stampLi
         outfile.write(' '.join(list(map(str, rowval))) + '\n')
     outfile.close()
 
-def scalability(topo, TMid, synthesis_type = "", stampList = []):
-    length = 18000
+def scalability(topo, TMid, synthesis_type = "", stampList = [], runtime = []):
+    length = 6000
     # filename = LOG_PATH + "objvals/" + topo + "_mcf_obj_vals%s.txt" % (synthesis_type)
     # mcf_ret = read_file(filename, TMid, TMid+1)[0]
-    mcf_ret = 0.3133
+    # mcf_ret = 0.3133 # gravNR50C
     # mcf_ret = 0.413
+    mcf_ret = 0.392 # gravNR250
 
     res = []
     vals = []
@@ -567,13 +568,13 @@ def scalability(topo, TMid, synthesis_type = "", stampList = []):
         res.append([item/mcf_ret for item in date_ret])
         # print(date_ret[-1]/mcf_ret)
         converge_point = sum([item/mcf_ret for item in date_ret[-100:]])/100.0
-        converge_point = np.median([item/mcf_ret for item in date_ret[-100:]])
+        # converge_point = np.median([item/mcf_ret for item in date_ret[-100:]])
         vals.append(converge_point)
 
     print(vals)
     outfile = open(LOG_PATH + "dat/%s_scale%s_hist.dat" % (topo, synthesis_type), 'w')
     for i in range(len(stampList)):
-        outfile.write(str(i) + ' ' + str(vals[i]) + '\n')
+        outfile.write(str(i) + ' ' + str(vals[i]) + ' ' + str(runtime[i]) + '\n')
     outfile.close()
 
 def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoch = 6000):
@@ -627,6 +628,12 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 # scalability("briten12r16grid", 0, synthesis_type = "_gravNR50c", stampList = stamps)
 # exit()
 
+stamps = ["0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_1blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_2blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_4blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_8blocks", "0409_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
+# , "0407_briten12r16grid_converge_MDAs_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
+runtime = [1+37/60, 1+39/60, 1+43/60, 1+47/60, 2+6/60]
+scalability("briten12r16grid", 0, synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
+exit()
+
 
 ################
 # failure
@@ -639,11 +646,11 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 # exit()
 
 # 1221c failure
-stamps1 = ["0311_1221c_failure_MDA_p331_gravNR250_rwd0_small0.80_epoch3000"]
-stamps2 = ["0305_1221c_failure_ECMP_p331_gravNR250"]
-stamps3 = ["0303_1221c_failure_drlte_gravNR250_win10_itr5k_b1_pall10"]
-failure("1221c", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
-exit()
+# stamps1 = ["0311_1221c_failure_MDA_p331_gravNR250_rwd0_small0.80_epoch3000"]
+# stamps2 = ["0305_1221c_failure_ECMP_p331_gravNR250"]
+# stamps3 = ["0303_1221c_failure_drlte_gravNR250_win10_itr5k_b1_pall10"]
+# failure("1221c", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
+# exit()
 
 # briten12r16grid failure
 # stamps1 = ["0303_briten12r16grid_failure_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20"]

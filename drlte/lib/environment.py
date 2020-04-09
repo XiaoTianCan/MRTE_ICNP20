@@ -754,7 +754,7 @@ class Environment:
     def get_info(self):
         self.__smalldemidmap = self.sort_intra_demand()
 
-        pathNumListDuel = [[] for _ in range(self.__regionnum)]
+        pathNumListDual = [[] for _ in range(self.__regionnum)]
         pathNumMapRegion = []
         for _ in range(self.__nodenum):
             pathNumMapRegion.append([0]*self.__regionnum)
@@ -776,10 +776,10 @@ class Environment:
                 tRegion = self.__noderegionid[dst]
                 if sRegion == tRegion:
                     if self.__smalldemidmap[demId] == 0:
-                        if len(pathNumListDuel[sRegion]) == 0:
-                            pathNumListDuel[sRegion].append([])
-                            pathNumListDuel[sRegion].append([])
-                        pathNumListDuel[sRegion][0].append(len(self.__oripathmaxtrix[src][dst]))
+                        if len(pathNumListDual[sRegion]) == 0:
+                            pathNumListDual[sRegion].append([])
+                            pathNumListDual[sRegion].append([])
+                        pathNumListDual[sRegion][0].append(len(self.__oripathmaxtrix[src][dst]))
                         edgepaths = self.convert_edge_paths(self.__oripathmaxtrix[src][dst])
                         self.__act2edgepath[sRegion*2].append(edgepaths)
                 else:
@@ -802,7 +802,7 @@ class Environment:
                     continue
                 if self.__regionrMatrix[sRegion][tRegion] != tRegion:  # region-level
                     continue
-                pathNumListDuel[sRegion][1].append(pathNumMapRegion[src][tRegion])
+                pathNumListDual[sRegion][1].append(pathNumMapRegion[src][tRegion])
                 self.__act2edgepath[sRegion*2+1].append(edgepathsMapRegion[src][tRegion]) # failure
                 actionRangeMap[src][tRegion] = [actCountList[sRegion], actCountList[sRegion]+pathNumMapRegion[src][tRegion]]
                 actCountList[sRegion] += pathNumMapRegion[src][tRegion]
@@ -818,30 +818,30 @@ class Environment:
         self.__actionrangemap = actionRangeMap
         
         print("regionedgenum:", self.__regionedgenum)
-        print("actionDim:", [(sum(item[0]), sum(item[1])) for item in pathNumListDuel])
-        # print("pathNumListDuel:", pathNumListDuel)
+        print("actionDim:", [(sum(item[0]), sum(item[1])) for item in pathNumListDual])
+        # print("pathNumListDual:", pathNumListDual)
         # print("regionNodeNeibor:", self.__regionnodeneibor)
         # exit()
         if not self.__blockflag:
-            return self.__regionnum, self.__regionedgenum, pathNumListDuel, self.__regionnodeneibor
+            return self.__regionnum, self.__regionedgenum, pathNumListDual, self.__regionnodeneibor
         
         print("\nBlock Block Block")
         blockNum = len(self.__blockrule)
         self.__blocknum = blockNum
         regionEdgeNum = [0]*blockNum
-        pathNumListDuelBlock = []
+        pathNumListDualBlock = []
         regionNodeNeibor = [[] for _ in range(blockNum)]
         ridMap = [0]*self.__regionnum
         self.__actionBorderInBlock = []
         for bid in range(blockNum):
-            pathNumListDuelBlock.append([[], []])
+            pathNumListDualBlock.append([[], []])
             self.__actionBorderInBlock.append([[0], [0]])
             for rid in self.__blockrule[bid]:
                 regionEdgeNum[bid] += self.__regionedgenum[rid]
-                pathNumListDuelBlock[bid][0] += pathNumListDuel[rid][0]
-                pathNumListDuelBlock[bid][1] += pathNumListDuel[rid][1]
-                self.__actionBorderInBlock[bid][0].append(sum(pathNumListDuelBlock[bid][0]))
-                self.__actionBorderInBlock[bid][1].append(sum(pathNumListDuelBlock[bid][1]))
+                pathNumListDualBlock[bid][0] += pathNumListDual[rid][0]
+                pathNumListDualBlock[bid][1] += pathNumListDual[rid][1]
+                self.__actionBorderInBlock[bid][0].append(sum(pathNumListDualBlock[bid][0]))
+                self.__actionBorderInBlock[bid][1].append(sum(pathNumListDualBlock[bid][1]))
                 ridMap[rid] = bid
         
         for bid in range(blockNum):
@@ -853,7 +853,7 @@ class Environment:
         print("regionNodeNeibor:", regionNodeNeibor)
         print("self.__actionBorderInBlock", self.__actionBorderInBlock)
         # exit()
-        return blockNum, regionEdgeNum, pathNumListDuelBlock, regionNodeNeibor
+        return blockNum, regionEdgeNum, pathNumListDualBlock, regionNodeNeibor
         
         
 

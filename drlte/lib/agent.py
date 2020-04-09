@@ -50,8 +50,32 @@ def init_action(regionNum, pathNumList):
         res.append(action)
     return res
 
+
 def update_step(maxutil, maxutilList, netutilList, agents, regionNodeNeibor, actionBorderline):
-    if AGENT_TYPE == "MDA":
+    if AGENT_TYPE == "MDAs":
+        actions = []
+        agentNum = len(agents)//2
+        if RWD_FLAG == 0:
+            for agentid in range(agentNum):
+                state = netutilList[agentid//2]
+                if agentid % 2 == 0:
+                    reward = -1*maxutilList[agentid//2]
+                    result1 = agents[2*agentid].predict(state, reward)
+                    result2 = agents[2*agentid+1].predict(state, reward)
+                    result = list(result1) + list(result2)
+                else:
+                    maxutil_nei = [maxutilList[nrid] for nrid in regionNodeNeibor[agentid//2]]
+                    if len(maxutil_nei) == 0:
+                        reward = -0.7*maxutilList[agentid//2]
+                    else:
+                        reward = -0.7*maxutilList[agentid//2] - 0.3*sum(maxutil_nei)/len(maxutil_nei)
+                    result1 = agents[2*agentid].predict(state, reward)
+                    result2 = agents[2*agentid+1].predict(state, reward)
+                    result = list(result1) + list(result2)
+                actions.append(result)
+        return actions
+
+    elif AGENT_TYPE == "MDA":
         actions = []
         agentNum = len(agents)
         if RWD_FLAG == 0:
@@ -179,20 +203,20 @@ def update_step(maxutil, maxutilList, netutilList, agents, regionNodeNeibor, act
 def init_multi_agent(globalSess):
     env = Environment(PATHPRE, TOPO_NAME, MAX_EPISODES, MAX_EP_STEPS, START_INDEX, IS_TRAIN, PATH_TYPE, SYNT_TYPE, SMALL_RATIO, FAILURE_FLAG, BLOCK_NUM)
 
-    regionNum, edgeNumList, pathNumListDuel, regionNodeNeibor = env.get_info()
+    regionNum, edgeNumList, pathNumListDual, regionNodeNeibor = env.get_info()
     if AGENT_TYPE == "MDA":
         print("\nConstructing MDA multiple agents ...")
         agents = []
         for regionId in range(regionNum):
             print("Region%d .." % regionId)
             dimState = edgeNumList[regionId]
-            dimAction = sum(pathNumListDuel[regionId][0])
-            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDuel[regionId][0], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            dimAction = sum(pathNumListDual[regionId][0])
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDual[regionId][0], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
             agents.append(agent)
 
             dimState = edgeNumList[regionId]
-            dimAction = sum(pathNumListDuel[regionId][1])
-            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDuel[regionId][1], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            dimAction = sum(pathNumListDual[regionId][1])
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDual[regionId][1], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
             agents.append(agent)
         
         # parameters init  
@@ -212,7 +236,53 @@ def init_multi_agent(globalSess):
         
         initActions = []
         for regionId in range(regionNum):
-            initActions += init_action(2, pathNumListDuel[regionId])
+            initActions += init_action(2, pathNumListDual[regionId])
+        return env, agents, initActions, regionNodeNeibor, []
+
+    elif AGENT_TYPE == "MDAs":
+        print("\nConstructing MDAs multiple agents ...")
+        agents = []
+        for regionId in range(regionNum):
+            print("Region%d .." % regionId)
+            dimState = edgeNumList[regionId]
+            pathNumListTmp = pathNumListDual[regionId][0][:len(pathNumListDual[regionId][0])//2]
+            dimAction = sum(pathNumListTmp)
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListTmp, ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            agents.append(agent)
+
+            pathNumListTmp = pathNumListDual[regionId][0][len(pathNumListDual[regionId][0])//2:]
+            dimAction = sum(pathNumListTmp)
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListTmp, ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            agents.append(agent)
+
+            pathNumListTmp = pathNumListDual[regionId][1][:len(pathNumListDual[regionId][1])//2]
+            dimAction = sum(pathNumListTmp)
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListTmp, ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            agents.append(agent)
+
+            pathNumListTmp = pathNumListDual[regionId][1][len(pathNumListDual[regionId][1])//2:]
+            dimAction = sum(pathNumListTmp)
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListTmp, ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            agents.append(agent)
+        
+        # parameters init  
+        print("Running global_variables initializer ...")
+        globalSess.run(tf.global_variables_initializer())
+        
+        # build target actor and critic para
+        print("Building target network ...")
+        for agentid in range(len(agents)):
+            agents[agentid].target_paras_init()
+        
+        # parameters restore
+        mSaver = tf.train.Saver(tf.trainable_variables()) 
+        if CKPT_PATH != None and CKPT_PATH != "":
+            print("restore paramaters...")
+            mSaver.restore(globalSess, CKPT_PATH)
+        
+        initActions = []
+        for regionId in range(regionNum):
+            initActions += init_action(2, pathNumListDual[regionId])
         return env, agents, initActions, regionNodeNeibor, []
 
     elif AGENT_TYPE == "MSA":
@@ -222,10 +292,10 @@ def init_multi_agent(globalSess):
         for regionId in range(regionNum):
             print("Region%d .." % regionId)
             dimState = edgeNumList[regionId]
-            dimAction = sum(pathNumListDuel[regionId][0]) + sum(pathNumListDuel[regionId][1])
-            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDuel[regionId][0] + pathNumListDuel[regionId][1], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
+            dimAction = sum(pathNumListDual[regionId][0]) + sum(pathNumListDual[regionId][1])
+            agent = DrlAgent(globalSess, IS_TRAIN, dimState, dimAction, pathNumListDual[regionId][0] + pathNumListDual[regionId][1], ACTOR_LEARNING_RATE, CRITIC_LEARNING_RATE, TAU, BUFFER_SIZE, MINI_BATCH, EP_BEGIN, EP_END, GAMMA, MAX_EP_STEPS)
             agents.append(agent)
-            actionBorderline.append(sum(pathNumListDuel[regionId][0]))
+            actionBorderline.append(sum(pathNumListDual[regionId][0]))
         
         # parameters init  
         print("Running global_variables initializer ...")
@@ -244,12 +314,12 @@ def init_multi_agent(globalSess):
         
         initActions = []
         for regionId in range(regionNum):
-            initActions += init_action(2, pathNumListDuel[regionId])
+            initActions += init_action(2, pathNumListDual[regionId])
         return env, agents, initActions, regionNodeNeibor, actionBorderline
     elif AGENT_TYPE == "ECMP":
         initActions = []
         for regionId in range(regionNum):
-            initActions += init_action(2, pathNumListDuel[regionId])
+            initActions += init_action(2, pathNumListDual[regionId])
         return env, [], initActions, regionNodeNeibor, []
     else:
         print("Scheme type error")
