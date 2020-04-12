@@ -615,10 +615,12 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 # exit()
 
 # # briten12r16grid gravNR250
-# stamps = ["0303_briten12r16grid_infer_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20", "0305_briten12r16grid_infer_drlte_gravNR250_win1_itr5k_b1_pall1"]
+# # stamps = ["0303_briten12r16grid_infer_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20", "0305_briten12r16grid_infer_drlte_gravNR250_win1_itr5k_b1_pall1"]
+# stamps = ["0407_briten12r16grid_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks", "0409_briten12r16grid_infer_drlte_gravNR250_win10_itr5k_b1_pall1"]
 # figurename = stamps[0]
 # infer("briten12r16grid", ["MMA", "DRLTE", "ECMP", "HPMCF"], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
 # exit()
+
 
 ################
 # scalability
@@ -628,11 +630,11 @@ def alternate(topo, alterNum, start, figurename, synthesis_type, stampList, epoc
 # scalability("briten12r16grid", 0, synthesis_type = "_gravNR50c", stampList = stamps)
 # exit()
 
-stamps = ["0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_1blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_2blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_4blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_8blocks", "0409_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
-# , "0407_briten12r16grid_converge_MDAs_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
-runtime = [1+37/60, 1+39/60, 1+43/60, 1+47/60, 2+6/60]
-scalability("briten12r16grid", 0, synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
-exit()
+# stamps = ["0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_1blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_2blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_4blocks", "0408_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_8blocks", "0409_briten12r16grid_converge_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
+# # , "0407_briten12r16grid_converge_MDAs_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
+# runtime = [1+37/60, 1+39/60, 1+43/60, 1+47/60, 2+6/60]
+# scalability("briten12r16grid", 0, synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
+# exit()
 
 
 ################
@@ -652,27 +654,30 @@ exit()
 # failure("1221c", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
 # exit()
 
-# briten12r16grid failure
-# stamps1 = ["0303_briten12r16grid_failure_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20"]
+# # briten12r16grid failure
+# # stamps1 = ["0303_briten12r16grid_failure_MMA_p331_gravNR250_comm5_incre0.3_alter1_LB_16blocks_epi20"]
+# stamps1 = ["0407_briten12r16grid_failure_MDA_p331_gravNR250_rwd0_small0.80_epoch6000_16blocks"]
 # stamps2 = ["0305_briten12r16grid_failure_ECMP_p331_gravNR250"]
 # stamps3 = ["0305_briten12r16grid_failure_drlte_gravNR250_win1_itr5k_b1_pall1"]
+# # stamps3 = ["0409_briten12r16grid_failure_drlte_gravNR250_win10_itr5k_b1_pall1"]
 # failure("briten12r16grid", ["MMA", "DRLTE", "HPMCF", "ECMP"], 0, 100, ["_gravNR250"], stamps1, stamps2, stamps3)
 # exit()
 
 ################
 # incre
 ################
-# stamps = ["0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.00_epoch3000", 
-# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.20_epoch3000", 
-# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.40_epoch3000", 
-# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.60_epoch3000", 
-# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
-# "0311_1221c_train_MDA_p331_gravNR250_rwd0_small1.00_epoch3000"]
-# runtime = [7*60+44, 7.5*60, 6*60+50, 6*60+15, 5*60+37, 3*60+28]
-# runtime = [item/40 for item in runtime]
-# print(runtime)
-# get_incre_effect("1221c", ["MMA%d" % i for i in range(len(stamps))], 0, 10, stamps[0], synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
-# exit()
+stamps = ["0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.00_epoch3000", 
+"0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.20_epoch3000", 
+"0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.40_epoch3000", 
+"0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.60_epoch3000", 
+"0311_1221c_train_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+"0311_1221c_train_MDA_p331_gravNR250_rwd0_small1.00_epoch3000"]
+runtime = [7*60+44, 7.5*60, 6*60+50, 6*60+15, 5*60+37, 3*60+28] # 0311_1221c
+runtime = [item/40 for item in runtime] # 0411_1221c
+runtime = [5 + 2/60, 4 + 45/60, 4 + 28/60, 4 + 14/60, 3 + 58/60, 2 + 41/60]
+print(runtime)
+get_incre_effect("1221c", ["MMA%d" % i for i in range(len(stamps))], 0, 10, stamps[0], synthesis_type = "_gravNR250", stampList = stamps, runtime = runtime)
+exit()
 
 ################
 # convergence
@@ -704,13 +709,13 @@ exit()
 # exit()
 
 
-stamps = ["0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
-"0311_1221c_infer_MSA_p331_gravNR250_rwd1_small0.80_epoch3000", 
-"0311_1221c_infer_MSA_p331_gravNR250_rwd2_small0.80_epoch3000", 
-"0312_1221c_infer_MSA_p331_gravNR250_rwd3_small0.80_epoch3000_1"]
-figurename = stamps[0] + "_rwd"
-get_rwd_effect2("1221c", ["MMA%d" % i for i in range(len(stamps))], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
-exit()
+# stamps = ["0311_1221c_infer_MDA_p331_gravNR250_rwd0_small0.80_epoch3000", 
+# "0311_1221c_infer_MSA_p331_gravNR250_rwd1_small0.80_epoch3000", 
+# "0311_1221c_infer_MSA_p331_gravNR250_rwd2_small0.80_epoch3000", 
+# "0312_1221c_infer_MSA_p331_gravNR250_rwd3_small0.80_epoch3000_1"]
+# figurename = stamps[0] + "_rwd"
+# get_rwd_effect2("1221c", ["MMA%d" % i for i in range(len(stamps))], 40, 200, figurename, synthesis_type = "_gravNR250", stampList = stamps)
+# exit()
 
 
 

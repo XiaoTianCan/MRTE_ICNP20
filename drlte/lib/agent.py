@@ -84,6 +84,7 @@ def update_step(maxutil, maxutilList, netutilList, agents, regionNodeNeibor, act
                 if agentid % 2 == 0:
                     reward = -1*maxutilList[agentid//2]
                     result = agents[agentid].predict(state, reward)
+                    # result = initActions[agentid]
                 else:
                     maxutil_nei = [maxutilList[nrid] for nrid in regionNodeNeibor[agentid//2]]
                     if len(maxutil_nei) == 0:

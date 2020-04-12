@@ -9,18 +9,18 @@ from rllab.misc.instrument import run_experiment_lite
 import time
 
 pathPre = "/home/server/gengnan/NATE_project/"
-timestamp = "0305"
-target = "failure"
+timestamp = "0412"
+target = "train"
 # if infer or failure, remenber to modify the flag in network_env.py
 # if n_parallel=1, set the flag to -1; if n_parallel>1, set the flag to 0
-# if failure, remember to modify the iter_num to 100 in batch_polopt.py
+# if failure, remember to modify the iter_num to 100 in batch_polopt.py and set failure_flag to True in network_env.py
 topo = "briten12r16grid" # google
 synthesis_type = "gravNR250" # gravNR50c bimoSame28
 
 # win_size, max_itr_num, batch_size, n_parallel, hidden_layers = (1, 2, 1, 1, (32, 32))
 # win_size, max_itr_num, batch_size, n_parallel, hidden_layers = (10, 5*1000, 1, 10, (64, 32, 32))
 if topo == "briten12r16grid":
-    win_size, max_itr_num, batch_size, n_parallel, hidden_layers = (1, 5*1000, 1, 1, (64, 32, 32))
+    win_size, max_itr_num, batch_size, n_parallel, hidden_layers = (10, 3*5*1000, 1, 1, (64, 32, 32))
 
 stamp_tail = "win%d_itr%dk_b%d_pall%d" % (win_size, max_itr_num//1000, batch_size, n_parallel)
 

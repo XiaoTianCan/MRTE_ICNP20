@@ -40,7 +40,7 @@ class SimEnv(Env):
         self._log_maxutil = None
         self._log_reward = None
 
-    def reset_env(self, failure_flag = True):
+    def reset_env(self, failure_flag = False):
         self._path_pre = "/home/server/gengnan/NATE_project/"
         if not os.path.exists(self._path_pre):
             print("root dir ERROR")
