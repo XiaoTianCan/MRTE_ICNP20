@@ -1,7 +1,6 @@
 #!/usr/bin/python
 #########################################################################
 # File Name: main.py
-# Author: gn
 # Discription: main file of the simulation system
 #########################################################################
 from __future__ import division
