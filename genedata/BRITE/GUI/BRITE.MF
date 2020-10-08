@@ -1,4 +1,0 @@
-Name: GUI
-Main-Class: GUI.Brite
-Class-Path: . GUI/
-
