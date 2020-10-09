@@ -1,3 +1,6 @@
+"""
+	Do explorations
+"""
 import numpy as np
 
 class Explorer:
@@ -14,7 +17,7 @@ class Explorer:
     def convert_action(self, action):
         act = np.split(action, np.cumsum(self.__num_paths))[:-1]
         for idx, val in enumerate(act):
-            if not np.any(val): # whether all element are zero, if true, otherwise false
+            if not np.any(val):
                 act[idx][0] = 1.
                 continue
             act[idx] = val / sum(val.flatten())

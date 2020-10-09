@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 '''
-Objective: This Env is used for offline training and testing. 
-Created at 12/27/2019
+    Environment for offline training and test. 
 '''
 
 from __future__ import division
@@ -11,8 +10,6 @@ import copy
 import pickle
 import numpy as np
 import time
-import _thread
-import threading
 import multiprocessing as mp
 
 class Environment:
@@ -64,42 +61,14 @@ class Environment:
         self.__procnum = 6
         self.__partitions = []
 
-        # for grid topo; diff region num
+        # for grid topo
         self.__blockflag = False
-        if self.__toponame == "briten12r16grid":
-            if block_num == 16:
-                pass
-            else:
-                self.__blockflag = True
-                if block_num == 8:
-                    self.__blockrule = [
-                        [0, 1], [2, 3], [4, 5], [6, 7], 
-                        [8, 9], [10, 11], [12, 13], [14, 15]
-                    ]
-                elif block_num == 4:
-                    self.__blockrule = [
-                        [0, 1, 4, 5], [2, 3, 6, 7], 
-                        [8, 9, 12, 13], [10, 11, 14, 15]
-                    ]
-                elif block_num == 2:
-                    self.__blockrule = [
-                        [0, 1, 2, 3, 4, 5, 6, 7], 
-                        [8, 9, 10, 11, 12, 13, 14, 15]
-                    ]
-                elif block_num == 1:
-                    self.__blockrule = [
-                        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-                    ]
         
         # file path
         self.__topofile = infile_prefix + "inputs/region/" + topo_name + ".txt"
         self.__pathfile = infile_prefix + "inputs/pathset/" + topo_name + "_" + path_type + ".pickle"
         
-        if train_flag and episode > 1:
-            traffic_type = "trainset"
-        else:
-            traffic_type = "testset"
-        self.__ratefile = infile_prefix + "inputs/traffic/" + traffic_type + "/" + topo_name + "_TMset_%s.txt" % (synthesis_type)
+        self.__ratefile = infile_prefix + "inputs/traffic/" + topo_name + "_TMset_%s.txt" % (synthesis_type)
 
         # initial functions
         self.get_regions()
@@ -252,7 +221,6 @@ class Environment:
         return subsizes, gates
 
     def com_action_matrix(self, actionList):
-        # TODO: failure
         if self.__failure_flag == 1:
             actionList = self.action_failure(actionList)
 
@@ -328,7 +296,6 @@ class Environment:
                     continue
                 else:
                     pass
-                # t0 = time.time()
                 flowmap = []
                 for _ in range(self.__nodenum):
                     flowmap.append([0.0]*self.__nodenum)
@@ -353,14 +320,11 @@ class Environment:
                                     continue
                                 sources.append(gates[gwid])
                                 sizes.append(subsizes[gwid])
-                # t1 = time.time()
-                # print("finish time", t1 - t0)
                 conn.send(flowmap)
             except EOFError:
                 break
 
-    def compute_flowmap_paralell(self):
-        # t0 = time.time()
+    def compute_flowmap_paralell(self): # for large topo
         if self.__updatenum == 0:
             step = self.__nodenum//self.__procnum
             self.__partitions = [procid*step for procid in range(self.__procnum)] + [self.__nodenum]
@@ -372,26 +336,19 @@ class Environment:
                 pool.apply_async(self.process_com_flowmap_pipe, args = (self.__partitions[procid], self.__partitions[procid+1], child_conn, ))
 
         if self.__updatenum%self.__epoch == 0:
-            # print("TM", self.__updatenum)
             for parent_conn in self.__connList:
                 parent_conn.send((1, self.__TM))
 
-        # print("update", self.__updatenum)
         for parent_conn in self.__connList:
             parent_conn.send((0, self.__actionmatrix))
         
         flowmapList = []
         for parent_conn in self.__connList:
             flowmapList.append(parent_conn.recv())
-            # print(parent_conn.recv())
 
         if self.__updatenum == self.__maxepoch - 1:
-            # print("shut", self.__updatenum)
             for parent_conn in self.__connList:
                 parent_conn.close()
-
-        # t2 = time.time()
-        # print("get", t2 - t1)
 
         flowmap = []
         for _ in range(self.__nodenum):
@@ -400,8 +357,6 @@ class Environment:
             for dst in range(self.__nodenum):
                 for flowmap_sub in flowmapList:
                     flowmap[src][dst] += flowmap_sub[src][dst]
-        # t3 = time.time()
-        # print("add", t3 - t2)
 
         return flowmap
 
@@ -419,7 +374,6 @@ class Environment:
                 maxutilList.append(max(netutil))
             return maxutilList, netutilList
         else: # failure
-            # TODO
             netutilList2 = [[] for _ in range(self.__regionnum)]
             for i in range(self.__nodenum):
                 for j in range(self.__nodenum):
@@ -461,7 +415,7 @@ class Environment:
         if self.__blockflag:
             actions = self.convert_block_action(actions)
         self.com_action_matrix(actions)
-        if self.__toponame == "briten12r16grid":
+        if self.__toponame == "briten12r16grid": # for large topo
             flowmap = self.compute_flowmap_paralell()
         else:
             flowmap = self.compute_flowmap()
@@ -567,16 +521,8 @@ class Environment:
             for j in range(self.__nodenum):
                 if i == j:
                     continue
-                # if self.__noderegionid[i] != self.__noderegionid[j]:
-                #     self.__TM[i][j] = 0.0
-                # elif self.__noderegionid[i] == 0 or self.__noderegionid[i] == 1:
-                #     self.__TM[i][j] = 0.0
-                # else:
-                #     self.__TM[i][j] = self.__demrate[demId]
                 self.__TM[i][j] = self.__demrate[demId]
                 demId += 1
-        # print(self.__TM[0])
-        # exit()
 
     def set_TM(self, s, t, size):
         self.__TM = []
@@ -670,17 +616,11 @@ class Environment:
                 tRegion = self.__noderegionid[dst]
                 if sRegion == tRegion:
                     regionRates[sRegion].append(ternimalTM[src][dst])
-                    # if (src not in self.__bordernodes[sRegion]):
-                    #     regionDemIds[sRegion].append(0)
-                    # else:
-                    #     regionDemIds[sRegion].append(1)
                     regionDemIds[sRegion].append(demId)
                     totalTraffic_tmp[sRegion][0] += ternimalTM[src][dst]
                 else:
                     totalTraffic_tmp[sRegion][1] += ternimalTM[src][dst]
                 demId += 1
-        # print(totalTraffic_tmp)
-        # print(self.__bordernodes)
         # 3. sort region's demands
         smallDemIdMap = [0]*demandNum
         for rid in range(self.__regionnum):
@@ -690,54 +630,6 @@ class Environment:
             # print("small demand num", int(len(regionRates[rid])), len(index))
             for i in index:
                 smallDemIdMap[regionDemIds[rid][i]] = 1
-        # exit()
-
-        return smallDemIdMap
-
-    def sort_intra_demand_old(self, aveNum = 40):
-        # 1. get average demand rates
-        demandNum = len(self.__demrates[0])
-        demrate = np.array([0]*demandNum)
-        for i in range(aveNum):
-            rate = np.array(self.__demrates[i])
-            demrate = demrate + rate
-        demrate /= aveNum
-
-        # 2. get region demand rates
-        regionRates = [[] for _ in range(self.__regionnum)]
-        regionDemIds = [[] for _ in range(self.__regionnum)]
-        totalTraffic_tmp = [[0, 0] for _ in range(self.__regionnum)]
-        demId = 0
-        for src in range(self.__nodenum):
-            for dst in range(self.__nodenum):
-                if src == dst:
-                    continue
-                sRegion = self.__noderegionid[src]
-                tRegion = self.__noderegionid[dst]
-                if sRegion == tRegion and (src not in self.__bordernodes[sRegion]):
-                    regionRates[sRegion].append(demrate[demId])
-                    regionDemIds[sRegion].append(demId)
-                    totalTraffic_tmp[sRegion][0] += demrate[demId]
-                else:
-                    totalTraffic_tmp[sRegion][1] += demrate[demId]
-                demId += 1
-        # print(totalTraffic_tmp)
-        # print(self.__bordernodes)
-        # 3. sort region's demands
-        smallDemIdMap = [0]*demandNum
-        for rid in range(self.__regionnum):
-            index = np.argsort(regionRates[rid])
-            res = [round(regionRates[rid][i], 0) for i in index]
-            index = index[:int(len(regionRates[rid])*(1-self.__smallratio))]
-            for i in index:
-                smallDemIdMap[regionDemIds[rid][i]] = 1
-        # print(smallDemIdMap)
-        # print(sum(smallDemIdMap))
-        # fileout = open("smallDemIdMap.txt", 'w')
-        # print(smallDemIdMap, file = fileout)
-        # fileout.close()
-        # print("small demand num", int(len(regionRates[rid])), demandNum)
-        # exit()
 
         return smallDemIdMap
 
@@ -759,7 +651,7 @@ class Environment:
         for _ in range(self.__nodenum):
             pathNumMapRegion.append([0]*self.__regionnum)
         
-        # TODO: failure
+        # failure
         self.__act2edgepath = [[] for _ in range(self.__regionnum*2)]
         edgepathsMapRegion = []
         for i in range(self.__nodenum):
@@ -821,7 +713,6 @@ class Environment:
         print("actionDim:", [(sum(item[0]), sum(item[1])) for item in pathNumListDual])
         # print("pathNumListDual:", pathNumListDual)
         # print("regionNodeNeibor:", self.__regionnodeneibor)
-        # exit()
         if not self.__blockflag:
             return self.__regionnum, self.__regionedgenum, pathNumListDual, self.__regionnodeneibor
         
@@ -852,7 +743,6 @@ class Environment:
         print("regionEdgeNum:", regionEdgeNum)
         print("regionNodeNeibor:", regionNodeNeibor)
         print("self.__actionBorderInBlock", self.__actionBorderInBlock)
-        # exit()
         return blockNum, regionEdgeNum, pathNumListDualBlock, regionNodeNeibor
         
         

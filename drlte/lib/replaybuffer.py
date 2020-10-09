@@ -1,7 +1,5 @@
 """
-
-	Replay Buffer for Deep Reinforcement Learning
-
+	Replay Buffer for Deep Deterministic policy gradient
 """
 
 from collections import deque

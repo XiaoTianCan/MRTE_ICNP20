@@ -1,9 +1,6 @@
 """
-
 	Actor of Deep Deterministic policy gradient
-
 """
-
 import tflearn
 import tensorflow as tf
 

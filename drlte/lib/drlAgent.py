@@ -1,3 +1,7 @@
+"""
+    DRL agent class
+"""
+
 import tensorflow as tf
 from actor import ActorNetwork
 from critic import CriticNetwork
